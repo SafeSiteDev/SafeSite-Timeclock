@@ -9,7 +9,29 @@
 <body class="bg-dark text-light">
     <div class="container">
         <h1 class="title">Employee Dashboard</h1>
-        <p>Welcome, Employee! Clock in, clock out, and view your work hours.</p>
+        <form method="POST">
+            <button type="submit" name="action" value="clock_in" class="btn">Clock In</button>
+            <button type="submit" name="action" value="clock_out" class="btn">Clock Out</button>
+        </form>
+
+        <h2>Your Timesheet</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Clock In</th>
+                    <th>Clock Out</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for timesheet in timesheets %}
+                <tr>
+                    <td>{{ timesheet.clock_in }}</td>
+                    <td>{{ timesheet.clock_out }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
         <a href="/logout" class="btn">Logout</a>
     </div>
 </body>
