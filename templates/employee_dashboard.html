@@ -1,84 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>User Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #1c1c1c;
-            color: #fff;
-            margin: 0;
-            padding: 0;
-        }
-        h1 {
-            text-align: center;
-            margin-top: 20px;
-            color: #e74c3c;
-        }
-        table {
-            width: 80%;
-            margin: 20px auto;
-            border-collapse: collapse;
-            border: 1px solid #444;
-        }
-        th, td {
-            padding: 10px;
-            text-align: center;
-            border: 1px solid #444;
-        }
-        th {
-            background-color: #e74c3c;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background-color: #333;
-        }
-        .btn {
-            display: block;
-            width: 200px;
-            margin: 20px auto;
-            padding: 10px;
-            background-color: #e74c3c;
-            color: white;
-            text-align: center;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .btn:hover {
-            background-color: #c0392b;
-        }
-    </style>
 </head>
 <body>
-    <h1>User Dashboard</h1>
-    <h3>Your Clock Entries:</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Clock In</th>
-                <th>Clock Out</th>
-                <th>Total Hours</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for entry in clock_entries %}
-            <tr>
-                <td>{{ entry.clock_in }}</td>
-                <td>{{ entry.clock_out if entry.clock_out else 'Still Clocked In' }}</td>
-                <td>{{ entry.total_hours if entry.total_hours else 'N/A' }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <form action="/clock_in" method="POST">
-        <button class="btn" type="submit">Clock In</button>
+    <h1>Welcome {{ user.username }}</h1>
+    <form method="POST" action="{{ url_for('clock_in') }}">
+        <button type="submit">Clock In</button>
     </form>
-
-    <form action="/clock_out" method="POST">
-        <button class="btn" type="submit">Clock Out</button>
-    </form>
+    <ul>
+        {% for log in logs %}
+        <li>
+            Clock In: {{ log.clock_in }}
+            {% if log.clock_out %}
+                | Clock Out: {{ log.clock_out }}
+            {% else %}
+                <form method="POST" action="{{ url_for('clock_out', log_id=log.id) }}">
+                    <button type="submit">Clock Out</button>
+                </form>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    <a href="{{ url_for('logout') }}">Logout</a>
 </body>
 </html>
