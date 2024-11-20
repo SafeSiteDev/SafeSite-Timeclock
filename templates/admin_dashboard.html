@@ -1,15 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-    <h1>Admin Dashboard</h1>
-    <ul>
-        {% for user in users %}
-        <li>{{ user.username }} ({{ 'Admin' if user.is_admin else 'User' }})</li>
-        {% endfor %}
-    </ul>
-    <a href="{{ url_for('logout') }}">Logout</a>
+<body class="bg-dark text-light">
+    <div class="container">
+        <h1 class="title">Admin Dashboard</h1>
+        <p>Welcome, Admin! Manage employees, view logs, and perform administrative tasks.</p>
+        <a href="/logout" class="btn">Logout</a>
+    </div>
 </body>
 </html>
