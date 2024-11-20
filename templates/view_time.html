@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Time</title>
+</head>
+<body>
+    <h1>Your Time Entries</h1>
+    <table>
+        <tr>
+            <th>Clock In</th>
+            <th>Clock Out</th>
+        </tr>
+        {% for entry in time_entries %}
+        <tr>
+            <td>{{ entry[2] }}</td>
+            <td>{{ entry[3] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
