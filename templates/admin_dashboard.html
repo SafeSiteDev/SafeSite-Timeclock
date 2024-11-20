@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Safe Site Security Admin Dashboard</title>
+    <title>Admin Dashboard - Safe Site Security Timeclock</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="container">
-        <h1 class="title">Safe Site Security Admin Dashboard</h1>
-
-        <h2>Employee Records</h2>
-        <table class="table">
+        <h1 class="title">Admin Dashboard</h1>
+        <p>Welcome, Admin!</p>
+        <h2>Registered Users</h2>
+        <table>
             <thead>
                 <tr>
                     <th>Username</th>
                     <th>Role</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -23,13 +24,15 @@
                 <tr>
                     <td>{{ user.username }}</td>
                     <td>{{ user.role }}</td>
+                    <td>
+                        <a href="{{ url_for('delete_user', user_id=user.id) }}" class="btn">Delete</a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-
         <h2>Timesheets</h2>
-        <table class="table">
+        <table>
             <thead>
                 <tr>
                     <th>User ID</th>
@@ -47,8 +50,7 @@
                 {% endfor %}
             </tbody>
         </table>
-
-        <a href="/logout" class="btn">Logout</a>
+        <a href="{{ url_for('logout') }}" class="btn">Logout</a>
     </div>
 </body>
 </html>
