@@ -1,98 +1,131 @@
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import os
-from flask import Flask, render_template, request, redirect, url_for, jsonify
-import sqlite3
+import json
 from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "your_secret_key")
 
-# Function to get database connection
-def get_db_connection():
-    conn = sqlite3.connect("timeclock.db")
-    conn.row_factory = sqlite3.Row  # Enable row access in dict style
-    return conn
+# Data directory
+DATA_DIR = "data"
+USER_FILE = os.path.join(DATA_DIR, "users.json")
+LOG_FILE = os.path.join(DATA_DIR, "logs.json")
 
-# Initialize database
-def init_db():
-    with get_db_connection() as conn:
-        c = conn.cursor()
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS employees (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL
-            )
-        ''')
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS time_entries (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                employee_id INTEGER,
-                clock_in TEXT,
-                clock_out TEXT,
-                FOREIGN KEY (employee_id) REFERENCES employees (id)
-            )
-        ''')
-        conn.commit()
+# Ensure data directory exists
+os.makedirs(DATA_DIR, exist_ok=True)
 
-# Home page
-@app.route('/')
-def home():
-    return render_template('index.html')
+# Initialize files if they don't exist
+if not os.path.exists(USER_FILE):
+    with open(USER_FILE, "w") as f:
+        json.dump({}, f)
+if not os.path.exists(LOG_FILE):
+    with open(LOG_FILE, "w") as f:
+        json.dump({}, f)
 
-# Employee Login
-@app.route('/login', methods=['GET', 'POST'])
+
+def load_json(filepath):
+    with open(filepath, "r") as f:
+        return json.load(f)
+
+
+def save_json(filepath, data):
+    with open(filepath, "w") as f:
+        json.dump(data, f, indent=4)
+
+
+@app.route("/")
+def index():
+    if "username" in session:
+        return redirect(url_for("dashboard"))
+    return render_template("index.html")
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        role = request.form.get("role")
+
+        if not username or not password or not role:
+            flash("All fields are required!", "error")
+            return redirect(url_for("register"))
+
+        users = load_json(USER_FILE)
+        if username in users:
+            flash("Username already exists!", "error")
+            return redirect(url_for("register"))
+
+        users[username] = {"password": password, "role": role}
+        save_json(USER_FILE, users)
+        flash("Registration successful! Please login.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("register.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == 'POST':
-        name = request.form['name'].strip()
-        if not name:  # Validate if the name field is empty
-            return render_template('login.html', error="Name cannot be empty")
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
 
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            c.execute("SELECT id FROM employees WHERE name=?", (name,))
-            employee = c.fetchone()
-            if not employee:
-                c.execute("INSERT INTO employees (name) VALUES (?)", (name,))
-                conn.commit()
-                c.execute("SELECT id FROM employees WHERE name=?", (name,))
-                employee = c.fetchone()
-            return redirect(url_for('clock_in', employee_id=employee[0]))
-    return render_template('login.html')
+        users = load_json(USER_FILE)
+        if username in users and users[username]["password"] == password:
+            session["username"] = username
+            session["role"] = users[username]["role"]
+            flash("Login successful!", "success")
+            return redirect(url_for("dashboard"))
+        else:
+            flash("Invalid username or password!", "error")
+            return redirect(url_for("login"))
 
-# Clock In Page
-@app.route('/clock_in/<int:employee_id>', methods=['GET', 'POST'])
-def clock_in(employee_id):
-    if request.method == 'POST':
-        clock_in_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            c.execute("INSERT INTO time_entries (employee_id, clock_in) VALUES (?, ?)", 
-                      (employee_id, clock_in_time))
-            conn.commit()
-        return redirect(url_for('home'))
-    return render_template('clock_in.html', employee_id=employee_id)
+    return render_template("login.html")
 
-# Clock Out Page
-@app.route('/clock_out/<int:employee_id>', methods=['GET', 'POST'])
-def clock_out(employee_id):
-    if request.method == 'POST':
-        clock_out_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        with get_db_connection() as conn:
-            c = conn.cursor()
-            c.execute("UPDATE time_entries SET clock_out=? WHERE employee_id=? AND clock_out IS NULL",
-                      (clock_out_time, employee_id))
-            conn.commit()
-        return redirect(url_for('home'))
-    return render_template('clock_out.html', employee_id=employee_id)
 
-# View Time Entries
-@app.route('/view_time/<int:employee_id>')
-def view_time(employee_id):
-    with get_db_connection() as conn:
-        c = conn.cursor()
-        c.execute("SELECT * FROM time_entries WHERE employee_id=?", (employee_id,))
-        time_entries = c.fetchall()
-    return render_template('view_time.html', time_entries=time_entries)
+@app.route("/dashboard")
+def dashboard():
+    if "username" not in session:
+        return redirect(url_for("login"))
 
-if __name__ == '__main__':
-    init_db()  # Initialize the database when the app starts
-    port = int(os.environ.get('PORT', 5000))  # Get the port from the environment variable, default to 5000
-    app.run(host='0.0.0.0', port=port)  # Run the app on all available IPs on the specified port
+    username = session["username"]
+    role = session["role"]
+    logs = load_json(LOG_FILE)
+
+    if role == "admin":
+        return render_template("admin_dashboard.html", logs=logs, users=load_json(USER_FILE))
+    else:
+        user_logs = logs.get(username, [])
+        return render_template("employee_dashboard.html", logs=user_logs)
+
+
+@app.route("/clock", methods=["POST"])
+def clock():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    action = request.form.get("action")
+    username = session["username"]
+    logs = load_json(LOG_FILE)
+
+    if username not in logs:
+        logs[username] = []
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logs[username].append({"action": action, "timestamp": timestamp})
+    save_json(LOG_FILE, logs)
+
+    flash(f"Clock {action} successful!", "success")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("Logged out successfully!", "success")
+    return redirect(url_for("login"))
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
