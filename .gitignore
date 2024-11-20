@@ -1,4 +1,7 @@
-__pycache__/
-*.csv
-*.sqlite
 .env
+__pycache__/
+instance/
+*.pyc
+*.pyo
+*.log
+*.sqlite3
