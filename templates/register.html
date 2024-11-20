@@ -3,24 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
+    <title>Register - Safe Site Security Timeclock</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
-<body class="bg-dark text-light">
-    <div class="form-container">
-        <h1 class="title">Register</h1>
-        {% if error %}
-        <p class="error">{{ error }}</p>
-        {% endif %}
+<body>
+    <div class="container">
+        <h1 class="title">Safe Site Security Timeclock - Register</h1>
         <form method="POST">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <select name="role" required>
-                <option value="employee">Employee</option>
-                <option value="admin">Admin</option>
-            </select>
-            <button type="submit" class="btn">Register</button>
-        </form>
-    </div>
-</body>
-</html>
+            <div>
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div>
+                <label for="role">Role:</label>
+                <select name="role" required>
+                    <option
