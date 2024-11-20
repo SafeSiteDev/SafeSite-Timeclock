@@ -6,7 +6,7 @@
     <title>Register</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
+<body class="bg-dark text-light">
     <div class="form-container">
         <h1 class="title">Register</h1>
         {% if error %}
@@ -15,6 +15,10 @@
         <form method="POST">
             <input type="text" name="username" placeholder="Username" required>
             <input type="password" name="password" placeholder="Password" required>
+            <select name="role" required>
+                <option value="employee">Employee</option>
+                <option value="admin">Admin</option>
+            </select>
             <button type="submit" class="btn">Register</button>
         </form>
     </div>
