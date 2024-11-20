@@ -1,27 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>User Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-    <h1>Welcome {{ user.username }}</h1>
-    <form method="POST" action="{{ url_for('clock_in') }}">
-        <button type="submit">Clock In</button>
-    </form>
-    <ul>
-        {% for log in logs %}
-        <li>
-            Clock In: {{ log.clock_in }}
-            {% if log.clock_out %}
-                | Clock Out: {{ log.clock_out }}
-            {% else %}
-                <form method="POST" action="{{ url_for('clock_out', log_id=log.id) }}">
-                    <button type="submit">Clock Out</button>
-                </form>
-            {% endif %}
-        </li>
-        {% endfor %}
-    </ul>
-    <a href="{{ url_for('logout') }}">Logout</a>
+<body class="bg-dark text-light">
+    <div class="container">
+        <h1 class="title">Employee Dashboard</h1>
+        <p>Welcome, Employee! Clock in, clock out, and view your work hours.</p>
+        <a href="/logout" class="btn">Logout</a>
+    </div>
 </body>
 </html>
