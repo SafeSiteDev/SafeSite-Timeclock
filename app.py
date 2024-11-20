@@ -1,131 +1,102 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-import os
-import json
+from flask import Flask, render_template, request, redirect, url_for, session
+from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "your_secret_key")
 
-# Data directory
-DATA_DIR = "data"
-USER_FILE = os.path.join(DATA_DIR, "users.json")
-LOG_FILE = os.path.join(DATA_DIR, "logs.json")
+# Database setup
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///timeclock.db'
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "fallback_key_for_local_development")
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
-# Ensure data directory exists
-os.makedirs(DATA_DIR, exist_ok=True)
+# User Model
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
+    role = db.Column(db.String(20), default='user')  # 'admin' or 'user'
 
-# Initialize files if they don't exist
-if not os.path.exists(USER_FILE):
-    with open(USER_FILE, "w") as f:
-        json.dump({}, f)
-if not os.path.exists(LOG_FILE):
-    with open(LOG_FILE, "w") as f:
-        json.dump({}, f)
+# Clocking Model
+class ClockEntry(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    clock_in = db.Column(db.DateTime, nullable=False)
+    clock_out = db.Column(db.DateTime, nullable=True)
+    total_hours = db.Column(db.Float, nullable=True)
 
+    user = db.relationship('User', back_populates="clock_entries")
 
-def load_json(filepath):
-    with open(filepath, "r") as f:
-        return json.load(f)
+User.clock_entries = db.relationship('ClockEntry', back_populates='user')
 
+db.create_all()  # Create tables if they don't exist
 
-def save_json(filepath, data):
-    with open(filepath, "w") as f:
-        json.dump(data, f, indent=4)
-
-
-@app.route("/")
-def index():
-    if "username" in session:
-        return redirect(url_for("dashboard"))
-    return render_template("index.html")
-
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        role = request.form.get("role")
-
-        if not username or not password or not role:
-            flash("All fields are required!", "error")
-            return redirect(url_for("register"))
-
-        users = load_json(USER_FILE)
-        if username in users:
-            flash("Username already exists!", "error")
-            return redirect(url_for("register"))
-
-        users[username] = {"password": password, "role": role}
-        save_json(USER_FILE, users)
-        flash("Registration successful! Please login.", "success")
-        return redirect(url_for("login"))
-
-    return render_template("register.html")
-
-
-@app.route("/login", methods=["GET", "POST"])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-
-        users = load_json(USER_FILE)
-        if username in users and users[username]["password"] == password:
-            session["username"] = username
-            session["role"] = users[username]["role"]
-            flash("Login successful!", "success")
-            return redirect(url_for("dashboard"))
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        user = User.query.filter_by(username=username, password=password).first()
+        
+        if user:
+            session['user_id'] = user.id
+            session['role'] = user.role  # Track role (admin/user)
+            return redirect(url_for('dashboard'))
         else:
-            flash("Invalid username or password!", "error")
-            return redirect(url_for("login"))
+            return 'Invalid credentials', 400
+    return render_template('login.html')
 
-    return render_template("login.html")
-
-
-@app.route("/dashboard")
+@app.route('/dashboard')
 def dashboard():
-    if "username" not in session:
-        return redirect(url_for("login"))
-
-    username = session["username"]
-    role = session["role"]
-    logs = load_json(LOG_FILE)
-
-    if role == "admin":
-        return render_template("admin_dashboard.html", logs=logs, users=load_json(USER_FILE))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.get(session['user_id'])
+    
+    if user.role == 'admin':
+        users = User.query.all()  # Get all users
+        return render_template('admin_dashboard.html', users=users)
+    
     else:
-        user_logs = logs.get(username, [])
-        return render_template("employee_dashboard.html", logs=user_logs)
+        clock_entries = ClockEntry.query.filter_by(user_id=user.id).all()
+        return render_template('user_dashboard.html', clock_entries=clock_entries)
 
+@app.route('/clock_in', methods=['POST'])
+def clock_in():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.get(session['user_id'])
+    
+    if user:
+        clock_in_time = datetime.now()
+        clock_entry = ClockEntry(user_id=user.id, clock_in=clock_in_time)
+        db.session.add(clock_entry)
+        db.session.commit()
+    
+    return redirect(url_for('dashboard'))
 
-@app.route("/clock", methods=["POST"])
-def clock():
-    if "username" not in session:
-        return redirect(url_for("login"))
+@app.route('/clock_out', methods=['POST'])
+def clock_out():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.get(session['user_id'])
+    
+    if user:
+        clock_entry = ClockEntry.query.filter_by(user_id=user.id, clock_out=None).first()
+        if clock_entry:
+            clock_out_time = datetime.now()
+            clock_entry.clock_out = clock_out_time
+            clock_entry.total_hours = (clock_out_time - clock_entry.clock_in).seconds / 3600  # Calculate hours
+            db.session.commit()
+    
+    return redirect(url_for('dashboard'))
 
-    action = request.form.get("action")
-    username = session["username"]
-    logs = load_json(LOG_FILE)
-
-    if username not in logs:
-        logs[username] = []
-
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    logs[username].append({"action": action, "timestamp": timestamp})
-    save_json(LOG_FILE, logs)
-
-    flash(f"Clock {action} successful!", "success")
-    return redirect(url_for("dashboard"))
-
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    flash("Logged out successfully!", "success")
-    return redirect(url_for("login"))
-
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+if __name__ == '__main__':
+    app.run(debug=True)
