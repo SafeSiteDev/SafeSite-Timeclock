@@ -3,18 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <title>Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #1c1c1c;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+            color: #e74c3c;
+        }
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            border: 1px solid #444;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #444;
+        }
+        th {
+            background-color: #e74c3c;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #333;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome, Admin</h1>
-    <h2>Employee Logs</h2>
-    {% for user, user_logs in logs.items() %}
-        <h3>{{ user }}</h3>
-        <ul>
-            {% for log in user_logs %}
-            <li>{{ log.timestamp }} - {{ log.action }}</li>
+    <h1>Admin Dashboard</h1>
+    <h3>Users and Their Hours Worked:</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Total Hours Worked</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.username }}</td>
+                <td>
+                    {% set total_hours = 0 %}
+                    {% for entry in user.clock_entries %}
+                        {% if entry.clock_out %}
+                            {% set total_hours = total_hours + (entry.clock_out - entry.clock_in).seconds / 3600 %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ total_hours }} hours
+                </td>
+            </tr>
             {% endfor %}
-        </ul>
-    {% endfor %}
-    <a href="/logout">Logout</a>
+        </tbody>
+    </table>
 </body>
 </html>
