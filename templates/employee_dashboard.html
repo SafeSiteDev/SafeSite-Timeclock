@@ -19,4 +19,66 @@
         }
         table {
             width: 80%;
-            margin: 20px
+            margin: 20px auto;
+            border-collapse: collapse;
+            border: 1px solid #444;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #444;
+        }
+        th {
+            background-color: #e74c3c;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #333;
+        }
+        .btn {
+            display: block;
+            width: 200px;
+            margin: 20px auto;
+            padding: 10px;
+            background-color: #e74c3c;
+            color: white;
+            text-align: center;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <h1>User Dashboard</h1>
+    <h3>Your Clock Entries:</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Clock In</th>
+                <th>Clock Out</th>
+                <th>Total Hours</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in clock_entries %}
+            <tr>
+                <td>{{ entry.clock_in }}</td>
+                <td>{{ entry.clock_out if entry.clock_out else 'Still Clocked In' }}</td>
+                <td>{{ entry.total_hours if entry.total_hours else 'N/A' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <form action="/clock_in" method="POST">
+        <button class="btn" type="submit">Clock In</button>
+    </form>
+
+    <form action="/clock_out" method="POST">
+        <button class="btn" type="submit">Clock Out</button>
+    </form>
+</body>
+</html>
