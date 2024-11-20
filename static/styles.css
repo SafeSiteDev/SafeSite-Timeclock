@@ -1,100 +1,102 @@
-/* General Styling */
-body {
+/* Basic reset */
+* {
     margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #121212; /* Black background */
-    color: #f5f5f5; /* Light text */
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #121212; /* Dark background for a sleek look */
+    color: white;
 }
 
 .container {
-    max-width: 900px;
-    margin: 30px auto;
+    width: 80%;
+    margin: 0 auto;
     padding: 20px;
-    background: linear-gradient(145deg, #1f1f1f, #272727); /* Sleek gradient background */
-    border-radius: 15px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
 }
 
-/* Title Styling */
-.title {
-    text-align: center;
-    color: #e50914; /* Bright red for title */
-    text-transform: uppercase;
+h1.title {
+    color: #f44336; /* Red color for branding */
     font-size: 2.5rem;
-    letter-spacing: 2px;
+    text-align: center;
     margin-bottom: 30px;
 }
 
-/* Table Styling */
-.table {
+form {
+    background-color: #1f1f1f;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+form input[type="text"],
+form input[type="password"],
+form input[type="email"] {
     width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
-}
-
-.table th,
-.table td {
     padding: 10px;
-    text-align: center;
-    border: 1px solid #333; /* Dark border */
-}
-
-.table th {
-    background-color: #e50914; /* Bright red for headers */
+    margin: 10px 0;
+    background-color: #333;
+    border: 1px solid #444;
+    border-radius: 5px;
     color: #fff;
-    font-weight: bold;
-    text-transform: uppercase;
 }
 
-.table tr:nth-child(even) {
-    background-color: #1e1e1e;
+form button {
+    background-color: #f44336;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    width: 100%;
+    cursor: pointer;
 }
 
-.table tr:hover {
+form button:hover {
+    background-color: #e53935;
+}
+
+a.btn {
+    display: inline-block;
+    background-color: #444;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    margin-top: 20px;
+    text-align: center;
+}
+
+a.btn:hover {
     background-color: #333;
 }
 
-/* Button Styling */
-.btn {
-    display: inline-block;
-    padding: 12px 20px;
-    font-size: 1rem;
-    font-weight: bold;
-    text-transform: uppercase;
-    color: #fff;
-    background: linear-gradient(145deg, #e50914, #c40812); /* Red gradient */
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    text-decoration: none;
-    box-shadow: 0 4px 8px rgba(229, 9, 20, 0.4);
-    transition: transform 0.2s, box-shadow 0.2s;
+/* Table Styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
 }
 
-.btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 16px rgba(229, 9, 20, 0.6);
+table, th, td {
+    border: 1px solid #444;
+    text-align: left;
+    padding: 10px;
 }
 
-.btn:active {
-    transform: translateY(0);
-    box-shadow: 0 4px 8px rgba(229, 9, 20, 0.4);
+th {
+    background-color: #1f1f1f;
 }
 
-/* Form Styling */
-form {
+tbody tr:nth-child(even) {
+    background-color: #333;
+}
+
+.flash-message {
+    background-color: #f44336;
+    color: white;
+    padding: 10px;
     text-align: center;
-    margin: 20px 0;
-}
-
-form .btn {
-    margin: 0 10px;
-}
-
-/* Footer */
-footer {
-    text-align: center;
-    margin-top: 30px;
-    font-size: 0.8rem;
-    color: #777;
+    margin-bottom: 20px;
 }
