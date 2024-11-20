@@ -19,6 +19,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
+    role = db.Column(db.String(20), nullable=False)  # Admin or Employee
 
 # Initialize database before the first request
 @app.before_first_request
@@ -40,7 +41,11 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
-            return redirect(url_for('dashboard'))
+            session['user_role'] = user.role
+            if user.role == 'admin':
+                return redirect(url_for('admin_dashboard'))
+            else:
+                return redirect(url_for('employee_dashboard'))
         else:
             return render_template('login.html', error="Invalid credentials")
 
@@ -53,13 +58,14 @@ def register():
         try:
             username = request.form['username']
             password = request.form['password']
+            role = request.form['role']  # Capture role from form
             hashed_password = generate_password_hash(password, method='sha256')
 
             # Check if username already exists
             if User.query.filter_by(username=username).first():
                 return render_template('register.html', error="Username already exists. Please choose another.")
 
-            new_user = User(username=username, password=hashed_password)
+            new_user = User(username=username, password=hashed_password, role=role)
             db.session.add(new_user)
             db.session.commit()
 
@@ -68,17 +74,25 @@ def register():
             return render_template('register.html', error=f"An error occurred: {e}")
     return render_template('register.html')
 
-# Dashboard route
-@app.route('/dashboard')
-def dashboard():
-    if 'user_id' not in session:
+# Admin Dashboard
+@app.route('/admin_dashboard')
+def admin_dashboard():
+    if 'user_id' not in session or session.get('user_role') != 'admin':
         return redirect(url_for('login'))
-    return render_template('dashboard.html')
+    return render_template('admin_dashboard.html')
+
+# Employee Dashboard
+@app.route('/employee_dashboard')
+def employee_dashboard():
+    if 'user_id' not in session or session.get('user_role') != 'employee':
+        return redirect(url_for('login'))
+    return render_template('employee_dashboard.html')
 
 # Logout route
 @app.route('/logout')
 def logout():
     session.pop('user_id', None)
+    session.pop('user_role', None)
     return redirect(url_for('index'))
 
 if __name__ == "__main__":
