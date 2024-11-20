@@ -9,7 +9,44 @@
 <body class="bg-dark text-light">
     <div class="container">
         <h1 class="title">Admin Dashboard</h1>
-        <p>Welcome, Admin! Manage employees, view logs, and perform administrative tasks.</p>
+        <h2>Employee Records</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.role }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h2>Timesheets</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Clock In</th>
+                    <th>Clock Out</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for timesheet in timesheets %}
+                <tr>
+                    <td>{{ timesheet.user_id }}</td>
+                    <td>{{ timesheet.clock_in }}</td>
+                    <td>{{ timesheet.clock_out }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
         <a href="/logout" class="btn">Logout</a>
     </div>
 </body>
