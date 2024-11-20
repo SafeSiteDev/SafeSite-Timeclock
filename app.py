@@ -1,125 +1,132 @@
-import os
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
+# Initialize Flask app
 app = Flask(__name__)
 
-# Secret key for session management
-app.secret_key = os.environ.get('SECRET_KEY', 'your_default_secret_key')
-
-# Database configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///timeclock.db')
+# Use your own secret key
+app.config['SECRET_KEY'] = 'your_secret_key'  # Replace with your actual secret key
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///timeclock.db'  # SQLite database
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Initialize SQLAlchemy
 db = SQLAlchemy(app)
 
-# Models
+# Define User model
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    username = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), nullable=False)  # Admin or Employee
+    role = db.Column(db.String(50), nullable=False)  # admin or employee
 
+    def __repr__(self):
+        return f"<User {self.username}>"
+
+# Define Timesheet model
 class Timesheet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    clock_in = db.Column(db.DateTime, nullable=True)
+    clock_in = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     clock_out = db.Column(db.DateTime, nullable=True)
 
-# Initialize database before the first request
+    user = db.relationship('User', backref=db.backref('timesheets', lazy=True))
+
+    def __repr__(self):
+        return f"<Timesheet {self.user_id} - {self.clock_in} to {self.clock_out}>"
+
+# Initialize the database at the start if it doesn't exist
 @app.before_first_request
 def create_tables():
+    # Create all database tables if they don't exist
     db.create_all()
 
-# Home route
+# Routes for the application
 @app.route('/')
-def index():
-    return render_template('index.html')
+def home():
+    if 'user_id' in session:
+        return redirect(url_for('admin_dashboard')) if session['role'] == 'admin' else redirect(url_for('employee_dashboard'))
+    return redirect(url_for('login'))
 
-# Login route
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-
         user = User.query.filter_by(username=username).first()
+
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
-            session['user_role'] = user.role
-            if user.role == 'admin':
-                return redirect(url_for('admin_dashboard'))
-            else:
-                return redirect(url_for('employee_dashboard'))
+            session['username'] = user.username
+            session['role'] = user.role
+            flash('Login successful!', 'success')
+            return redirect(url_for('admin_dashboard') if user.role == 'admin' else url_for('employee_dashboard'))
         else:
-            return render_template('login.html', error="Invalid credentials")
+            flash('Invalid credentials. Please try again.', 'danger')
 
     return render_template('login.html')
 
-# Register route
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        try:
-            username = request.form['username']
-            password = request.form['password']
-            role = request.form['role']
-            hashed_password = generate_password_hash(password, method='sha256')
+        username = request.form['username']
+        password = request.form['password']
+        role = request.form['role']
 
-            # Check if username already exists
-            if User.query.filter_by(username=username).first():
-                return render_template('register.html', error="Username already exists. Please choose another.")
-
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists. Please choose a different one.', 'danger')
+        else:
+            hashed_password = generate_password_hash(password)
             new_user = User(username=username, password=hashed_password, role=role)
             db.session.add(new_user)
             db.session.commit()
-
+            flash('Registration successful! Please log in.', 'success')
             return redirect(url_for('login'))
-        except Exception as e:
-            return render_template('register.html', error=f"An error occurred: {e}")
+
     return render_template('register.html')
 
-# Admin Dashboard
-@app.route('/admin_dashboard')
+@app.route('/admin/dashboard')
 def admin_dashboard():
-    if 'user_id' not in session or session.get('user_role') != 'admin':
+    if 'user_id' not in session or session['role'] != 'admin':
         return redirect(url_for('login'))
 
-    users = User.query.filter(User.role != 'admin').all()
+    users = User.query.all()
     timesheets = Timesheet.query.all()
     return render_template('admin_dashboard.html', users=users, timesheets=timesheets)
 
-# Employee Dashboard
-@app.route('/employee_dashboard', methods=['GET', 'POST'])
+@app.route('/employee/dashboard')
 def employee_dashboard():
-    if 'user_id' not in session or session.get('user_role') != 'employee':
+    if 'user_id' not in session or session['role'] != 'employee':
+        return redirect(url_for('login'))
+
+    return render_template('employee_dashboard.html')
+
+@app.route('/clock_in_out', methods=['POST'])
+def clock_in_out():
+    if 'user_id' not in session:
         return redirect(url_for('login'))
 
     user_id = session['user_id']
-    if request.method == 'POST':
-        action = request.form['action']
-        if action == 'clock_in':
-            timesheet = Timesheet(user_id=user_id, clock_in=datetime.now())
-            db.session.add(timesheet)
-            db.session.commit()
-        elif action == 'clock_out':
-            timesheet = Timesheet.query.filter_by(user_id=user_id, clock_out=None).first()
-            if timesheet:
-                timesheet.clock_out = datetime.now()
-                db.session.commit()
+    user_timesheet = Timesheet.query.filter_by(user_id=user_id, clock_out=None).first()
 
-    timesheets = Timesheet.query.filter_by(user_id=user_id).all()
-    return render_template('employee_dashboard.html', timesheets=timesheets)
+    if user_timesheet:  # Clock out if already clocked in
+        user_timesheet.clock_out = datetime.utcnow()
+        db.session.commit()
+        flash('Clocked out successfully.', 'success')
+    else:  # Clock in if not already clocked in
+        new_timesheet = Timesheet(user_id=user_id)
+        db.session.add(new_timesheet)
+        db.session.commit()
+        flash('Clocked in successfully.', 'success')
 
-# Logout route
+    return redirect(url_for('employee_dashboard'))
+
 @app.route('/logout')
 def logout():
-    session.pop('user_id', None)
-    session.pop('user_role', None)
-    return redirect(url_for('index'))
+    session.clear()
+    flash('You have been logged out.', 'success')
+    return redirect(url_for('login'))
 
 if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(debug=True)
